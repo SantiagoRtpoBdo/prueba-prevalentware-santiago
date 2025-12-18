@@ -4,7 +4,7 @@ Un sistema completo para la gestión de movimientos financieros (ingresos y egre
 
 ## 📋 Descripción del Proyecto
 
-**Sistema de Gestión Financiera** es una aplicación web fullstack desarrollada con **Next.js** que permite gestionar movimientos financieros con autenticación segura mediante GitHub OAuth y email/password, control de acceso basado en roles (RBAC) y generación de reportes con visualización gráfica.
+**Sistema de Gestión Financiera** es una aplicación web fullstack desarrollada con **Next.js** que permite gestionar movimientos financieros con autenticación segura mediante GitHub OAuth, control de acceso basado en roles (RBAC) y generación de reportes con visualización gráfica.
 
 ## Prueba Técnica para Desarrollador Fullstack
 
@@ -73,14 +73,14 @@ El objetivo de esta prueba técnica es evaluar tus habilidades en el desarrollo 
   - **Backend:**
     - NextJS API routes para implementar endpoints REST.
     - Base de datos de Postgres en Supabase.
-     - **Documentación de API:** Implementar una ruta `/api/docs` que exponga la documentación del API usando OpenAPI/Swagger. Cada endpoint creado debe estar completamente documentado con sus parámetros, respuestas y ejemplos.
-   - **Protección de Datos:**
-     - Implementar control de acceso basado en roles (RBAC) para asegurar que solo los usuarios autorizados puedan acceder a ciertas funcionalidades y datos.
-     - Proteger el backend para que rechace conexiones no autenticadas.
-   - **Autenticación:**
-     - Utilizar [Better Auth](https://www.better-auth.com/) con [GitHub](https://github.com/settings/developers) como proveedor de autenticación y [Prisma](https://prisma.io) como adaptador para la autenticación por sesiones de base de datos.
-     - **IMPORTANTE:** Todos los nuevos usuarios que se registren deben ser automáticamente asignados con el rol "ADMIN" para facilitar las pruebas de la aplicación.
-   - **Pruebas unitarias**  - El candidato debe agregar al menos 3 pruebas unitarias donde considere necesario.
+    - **Documentación de API:** Implementar una ruta `/api/docs` que exponga la documentación del API usando OpenAPI/Swagger. Cada endpoint creado debe estar completamente documentado con sus parámetros, respuestas y ejemplos.
+  - **Protección de Datos:**
+    - Implementar control de acceso basado en roles (RBAC) para asegurar que solo los usuarios autorizados puedan acceder a ciertas funcionalidades y datos.
+    - Proteger el backend para que rechace conexiones no autenticadas.
+  - **Autenticación:**
+    - Utilizar [Better Auth](https://www.better-auth.com/) con [GitHub](https://github.com/settings/developers) como proveedor de autenticación y [Prisma](https://prisma.io) como adaptador para la autenticación por sesiones de base de datos.
+    - **IMPORTANTE:** Todos los nuevos usuarios que se registren deben ser automáticamente asignados con el rol "ADMIN" para facilitar las pruebas de la aplicación.
+  - **Pruebas unitarias** - El candidato debe agregar al menos 3 pruebas unitarias donde considere necesario.
   - **Despliegue:**
     - Desplegar el proyecto en Vercel.
 
@@ -128,7 +128,7 @@ El objetivo de esta prueba técnica es evaluar tus habilidades en el desarrollo 
 
 ## ✨ Características Implementadas
 
-- **🔐 Autenticación dual** con Better Auth (GitHub OAuth + Email/Password)
+- **🔐 Autenticación segura** con Better Auth y GitHub OAuth
 - **👥 Sistema de roles** (USER/ADMIN) con permisos granularizados
 - **💰 Gestión de transacciones** financieras (ingresos/egresos)
 - **📊 Reportes avanzados** con gráficos interactivos y exportación a CSV
@@ -140,6 +140,7 @@ El objetivo de esta prueba técnica es evaluar tus habilidades en el desarrollo 
 ## 🛠️ Stack Tecnológico
 
 ### Frontend
+
 - **Next.js 15** con Pages Router
 - **TypeScript** - Tipado estático
 - **Tailwind CSS** - Estilización moderna
@@ -147,13 +148,14 @@ El objetivo de esta prueba técnica es evaluar tus habilidades en el desarrollo 
 - **Recharts** - Gráficos interactivos
 
 ### Backend
+
 - **Next.js API Routes** - Endpoints REST
 - **Prisma ORM** - Gestión de base de datos
 - **PostgreSQL** - Base de datos (Supabase)
 - **Better Auth** - Autenticación y sesiones
-- **Resend** - Envío de emails (opcional)
 
 ### Testing & Tools
+
 - **Jest** - Testing framework
 - **React Testing Library** - Tests de componentes
 - **OpenAPI/Swagger** - Documentación de API
@@ -171,7 +173,7 @@ El objetivo de esta prueba técnica es evaluar tus habilidades en el desarrollo 
 │   ├── api-helpers.ts   # Middleware de autenticación
 │   └── swagger.ts       # Especificación OpenAPI
 ├── pages/               # Páginas y rutas de la aplicación
-│   ├── index.tsx        # Login (GitHub + Email)
+│   ├── index.tsx        # Login con GitHub OAuth
 │   ├── dashboard.tsx    # Dashboard principal
 │   ├── transactions.tsx # Gestión de transacciones
 │   ├── users.tsx        # Gestión de usuarios (admin)
@@ -192,6 +194,7 @@ El objetivo de esta prueba técnica es evaluar tus habilidades en el desarrollo 
 ## 🚀 Instalación y Configuración Local
 
 ### Prerrequisitos
+
 - **Node.js 18+** (runtime)
 - **npm** o **yarn** (package manager)
 - **Cuenta de GitHub** (para OAuth)
@@ -230,10 +233,6 @@ GITHUB_CLIENT_SECRET="tu-client-secret"
 
 # 🌐 URLs de la aplicación
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-
-# 📧 Email (Opcional - para autenticación por email)
-RESEND_API_KEY="re_tu_api_key"
-EMAIL_FROM="noreply@tudominio.com"
 ```
 
 #### Obtener credenciales de Supabase:
@@ -282,13 +281,16 @@ npm run dev
 ## 🎯 Rutas de la Aplicación
 
 ### Páginas Públicas
-- `/` - Login (GitHub OAuth + Email/Password)
+
+- `/` - Login con GitHub OAuth
 
 ### Páginas Protegidas (Requiere autenticación)
+
 - `/dashboard` - Dashboard principal con navegación
 - `/transactions` - Gestión de transacciones (todos los usuarios)
 
 ### Páginas de Administrador (Solo ADMIN)
+
 - `/users` - Gestión de usuarios
 - `/reports` - Reportes con gráficos y exportación CSV
 - `/api-docs` - Documentación Swagger de la API
@@ -296,59 +298,62 @@ npm run dev
 ## 📊 Endpoints de la API
 
 ### 💰 Transacciones
+
 - `GET /api/transactions` - Listar transacciones del usuario autenticado
 - `POST /api/transactions` - Crear nueva transacción (solo admin)
 
 ### 👥 Usuarios
+
 - `GET /api/users` - Listar todos los usuarios (solo admin)
 - `PUT /api/users/[id]` - Actualizar usuario (solo admin)
 
 ### 📈 Reportes
+
 - `GET /api/reports` - Obtener datos para gráficos (solo admin)
 - `GET /api/reports/csv` - Descargar reporte en CSV (solo admin)
 
 ### 📚 Documentación
+
 - `GET /api/docs` - Especificación OpenAPI/Swagger JSON
 - UI: `/api-docs` - Interfaz Swagger UI
 
 ## 🔐 Sistema de Autenticación
 
-### Métodos de Autenticación Soportados
+### GitHub OAuth
 
-#### 1. GitHub OAuth
-- Inicio de sesión rápido con cuenta de GitHub
+El sistema utiliza **Better Auth** con **GitHub OAuth** como único proveedor de autenticación:
+
+- Inicio de sesión rápido y seguro con cuenta de GitHub
 - Automáticamente crea usuario con rol ADMIN
+- No requiere registro manual
 - Callback URL: `/api/auth/callback/github`
-
-#### 2. Email y Contraseña
-- Registro con email, contraseña y nombre
-- Verificación de email obligatoria
-- Emails enviados con Resend (requiere `RESEND_API_KEY`)
 
 ### Flujo de Autenticación
 
 1. Usuario accede a `/` (página de login)
-2. Elige método de autenticación (GitHub o Email)
-3. Si es exitoso, redirige a `/dashboard`
-4. Sesión almacenada en base de datos (Better Auth)
+2. Hace clic en "Iniciar sesión con GitHub"
+3. Autoriza la aplicación en GitHub (solo primera vez)
+4. Redirige automáticamente a `/dashboard`
+5. Sesión almacenada en base de datos (Better Auth)
 
 ## 👥 Sistema de Roles y Permisos
 
 ### Roles Disponibles
+
 - **USER**: Usuarios regulares con acceso limitado
 - **ADMIN**: Administradores con acceso completo
 
 ### Matriz de Permisos
 
-| Funcionalidad | USER | ADMIN |
-|--------------|------|-------|
-| Ver transacciones propias | ✅ | ✅ |
-| Crear transacciones | ❌ | ✅ |
-| Ver todas las transacciones | ❌ | ✅ |
-| Gestionar usuarios | ❌ | ✅ |
-| Ver reportes | ❌ | ✅ |
-| Descargar CSV | ❌ | ✅ |
-| Acceder a `/api-docs` | ❌ | ✅ |
+| Funcionalidad               | USER | ADMIN |
+| --------------------------- | ---- | ----- |
+| Ver transacciones propias   | ✅   | ✅    |
+| Crear transacciones         | ❌   | ✅    |
+| Ver todas las transacciones | ❌   | ✅    |
+| Gestionar usuarios          | ❌   | ✅    |
+| Ver reportes                | ❌   | ✅    |
+| Descargar CSV               | ❌   | ✅    |
+| Acceder a `/api-docs`       | ❌   | ✅    |
 
 > **Nota:** Todos los nuevos usuarios se crean automáticamente como **ADMIN** para facilitar las pruebas.
 
@@ -368,6 +373,7 @@ npm run test:coverage
 ```
 
 ### Archivos de Pruebas
+
 - `__tests__/lib/api-helpers.test.ts` - Middleware de autenticación
 - `__tests__/components/Layout.test.tsx` - Componente de layout
 - `__tests__/lib/swagger.test.ts` - Documentación de API
@@ -375,6 +381,7 @@ npm run test:coverage
 ## 🗃️ Modelos de Base de Datos
 
 ### User
+
 ```prisma
 model User {
   id            String        @id
@@ -391,6 +398,7 @@ model User {
 ```
 
 ### Transaction
+
 ```prisma
 model Transaction {
   id        String          @id @default(cuid())
@@ -404,6 +412,7 @@ model Transaction {
 ```
 
 ### Enums
+
 ```prisma
 enum Role {
   USER
@@ -458,24 +467,23 @@ npm run lint             # Ejecutar ESLint
 ## 🐛 Troubleshooting
 
 ### Error al instalar dependencias
+
 ```bash
 npm install --legacy-peer-deps
 ```
 
 ### Error de conexión a base de datos
+
 1. Verifica que `DATABASE_URL` en `.env` sea correcta
 2. Asegúrate de que el proyecto de Supabase esté activo
 3. Ejecuta `npx prisma db push` para crear las tablas
 
 ### GitHub OAuth no funciona
-1. Verifica que `GITHUB_CLIENT_ID` y `GITHUB_CLIENT_SECRET` estén en `.env`
-2. Confirma que la Callback URL en GitHub sea correcta
-3. Reinicia el servidor después de cambiar variables de entorno
 
-### No se envían emails de verificación
-1. En desarrollo, los links aparecen en la consola del servidor
-2. Para producción, configura `RESEND_API_KEY` y `EMAIL_FROM`
-3. Instala `resend`: `npm install resend --legacy-peer-deps`
+1. Verifica que `GITHUB_CLIENT_ID` y `GITHUB_CLIENT_SECRET` estén en `.env`
+2. Confirma que la Callback URL en GitHub sea correcta: `http://localhost:3000/api/auth/callback/github`
+3. Asegúrate de haber creado la OAuth App en [GitHub Developer Settings](https://github.com/settings/developers)
+4. Reinicia el servidor después de cambiar variables de entorno
 
 ## 📝 Notas Técnicas
 
