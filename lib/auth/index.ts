@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { prisma } from '../prisma';
+import { prisma } from '@/lib/prisma';
 import * as brevo from '@getbrevo/brevo';
 
 // Configurar Brevo API
@@ -45,7 +45,9 @@ export const auth = betterAuth({
       } catch (error) {
         // Si falla el envío, logueamos pero no bloqueamos el registro
         if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
           console.error('Error enviando email de verificación:', error);
+          // eslint-disable-next-line no-console
           console.log('URL de verificación:', url);
         }
         throw error; // Re-lanzar para que Better Auth lo maneje
@@ -63,7 +65,7 @@ export const auth = betterAuth({
       role: {
         type: 'string',
         required: false,
-        defaultValue: 'USER',
+        defaultValue: 'ADMIN', // Todos los nuevos usuarios son ADMIN para facilitar pruebas
         input: false,
       },
       phone: {

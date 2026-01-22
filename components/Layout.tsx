@@ -62,7 +62,7 @@ const Layout = ({ children, user }: LayoutProps) => {
   }
 
   return (
-    <div className='min-h-screen bg-secondary/30'>
+    <div className='min-h-screen bg-secondary/30 flex flex-col'>
       {/* Professional Header */}
       <header className='sticky top-0 z-50 bg-card border-b border-border shadow-subtle'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
@@ -133,7 +133,7 @@ const Layout = ({ children, user }: LayoutProps) => {
       </nav>
 
       {/* Main Content */}
-      <main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 fade-in'>
+      <main className='flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 fade-in w-full'>
         {children}
       </main>
 
@@ -141,7 +141,7 @@ const Layout = ({ children, user }: LayoutProps) => {
       <footer className='mt-auto py-4 border-t border-border bg-card'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='text-center text-xs text-muted-foreground'>
-            <p>© 2026 Sistema de Gestión Financiera</p>
+            <p>© {new Date().getFullYear()} Sistema de Gestión Financiera</p>
           </div>
         </div>
       </footer>

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { authClient } from '@/lib/auth/client';
+import { useState, useMemo } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useTransactions } from '@/hooks/useTransactions';
 import Layout from '@/components/Layout';
-import type { ExtendedSession } from '@/types/session';
+import { PageLoader } from '@/components/templates/PageLoader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
@@ -13,137 +13,66 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Plus, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown } from 'lucide-react';
 import { StatCard } from '@/components/molecules/StatCard';
 import { DataTableHeader } from '@/components/molecules/DataTableHeader';
 import { TransactionsTable } from '@/components/organisms/TransactionsTable';
-
-interface Transaction {
-  id: string;
-  concept: string;
-  amount: number;
-  type: 'INCOME' | 'EXPENSE';
-  date: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
+import { TransactionForm } from '@/components/organisms/TransactionForm';
 
 const Transactions = () => {
-  const router = useRouter();
-  const { data: session, isPending } = authClient.useSession();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { session, isPending, isAdmin, user } = useAuth();
+  const {
+    transactions,
+    loading,
+    createTransaction,
+    totalIncome,
+    totalExpense,
+    balance,
+  } = useTransactions();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [formData, setFormData] = useState({
-    concept: '',
-    amount: '',
-    type: 'INCOME' as 'INCOME' | 'EXPENSE',
-    date: new Date().toISOString().slice(0, 16),
-  });
 
-  useEffect(() => {
-    if (!isPending && !session) {
-      router.push('/');
-    } else if (session) {
-      fetchTransactions();
+  const filteredTransactions = useMemo(
+    () =>
+      transactions.filter(
+        (t) =>
+          t.concept.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          t.user.name.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [transactions, searchTerm]
+  );
+
+  const incomePercentage = useMemo(
+    () =>
+      totalIncome > 0
+        ? ((totalIncome / (totalIncome + totalExpense || 1)) * 100).toFixed(1)
+        : '0',
+    [totalIncome, totalExpense]
+  );
+
+  const handleCreateTransaction = async (data: {
+    concept: string;
+    amount: number;
+    type: 'INCOME' | 'EXPENSE';
+    date: string;
+  }) => {
+    const result = await createTransaction(data);
+    if (result.success) {
+      setDialogOpen(false);
     }
-  }, [session, isPending, router]);
-
-  const fetchTransactions = async () => {
-    try {
-      const response = await fetch('/api/transactions');
-      if (response.ok) {
-        const data = await response.json();
-        setTransactions(data);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          amount: parseFloat(formData.amount),
-          date: new Date(formData.date).toISOString(),
-        }),
-      });
-
-      if (response.ok) {
-        setDialogOpen(false);
-        setFormData({
-          concept: '',
-          amount: '',
-          type: 'INCOME',
-          date: new Date().toISOString().slice(0, 16),
-        });
-        fetchTransactions();
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Error al crear la transacción');
-      }
-    } catch {
-      alert('Error al crear la transacción');
-    }
+    return result;
   };
 
   if (isPending || loading) {
-    return (
-      <div className='flex min-h-screen items-center justify-center'>
-        <Loader2 className='h-8 w-8 animate-spin text-primary' />
-      </div>
-    );
+    return <PageLoader />;
   }
 
-  if (!session) {
+  if (!session || !user) {
     return null;
   }
 
-  const extendedSession = session as unknown as ExtendedSession;
-  const isAdmin = extendedSession.user.role === 'ADMIN';
-
-  const filteredTransactions = transactions.filter(
-    (t) =>
-      t.concept.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.user.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const totalIncome = transactions
-    .filter((t) => t.type === 'INCOME')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpense = transactions
-    .filter((t) => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const balance = totalIncome - totalExpense;
-
-  const incomePercentage =
-    totalIncome > 0
-      ? ((totalIncome / (totalIncome + totalExpense)) * 100).toFixed(1)
-      : '0';
-
   return (
-    <Layout user={extendedSession.user}>
+    <Layout user={user}>
       <div className='space-y-6 fade-in'>
         <div className='flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
           <div>
@@ -171,87 +100,12 @@ const Transactions = () => {
                     Registra un nuevo ingreso o egreso en el sistema
                   </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className='mt-4 space-y-5'>
-                  <div>
-                    <Label htmlFor='concept' className='text-sm font-semibold'>
-                      Concepto
-                    </Label>
-                    <Input
-                      id='concept'
-                      value={formData.concept}
-                      onChange={(e) =>
-                        setFormData({ ...formData, concept: e.target.value })
-                      }
-                      required
-                      placeholder='Ej: Pago de servicios'
-                      className='mt-1.5'
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor='amount' className='text-sm font-semibold'>
-                      Monto
-                    </Label>
-                    <Input
-                      id='amount'
-                      type='number'
-                      step='0.01'
-                      value={formData.amount}
-                      onChange={(e) =>
-                        setFormData({ ...formData, amount: e.target.value })
-                      }
-                      required
-                      placeholder='0.00'
-                      className='mt-1.5'
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor='type' className='text-sm font-semibold'>
-                      Tipo de Movimiento
-                    </Label>
-                    <Select
-                      value={formData.type}
-                      onValueChange={(value: 'INCOME' | 'EXPENSE') =>
-                        setFormData({ ...formData, type: value })
-                      }
-                    >
-                      <SelectTrigger className='mt-1.5'>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value='INCOME'>
-                          <div className='flex items-center gap-2'>
-                            <TrendingUp className='h-4 w-4 text-success' />
-                            <span>Ingreso</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value='EXPENSE'>
-                          <div className='flex items-center gap-2'>
-                            <TrendingDown className='h-4 w-4 text-destructive' />
-                            <span>Egreso</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor='date' className='text-sm font-semibold'>
-                      Fecha y Hora
-                    </Label>
-                    <Input
-                      id='date'
-                      type='datetime-local'
-                      value={formData.date}
-                      onChange={(e) =>
-                        setFormData({ ...formData, date: e.target.value })
-                      }
-                      required
-                      className='mt-1.5'
-                    />
-                  </div>
-                  <Button type='submit' className='w-full'>
-                    Guardar Movimiento
-                  </Button>
-                </form>
+                <div className='mt-4'>
+                  <TransactionForm
+                    onSubmit={handleCreateTransaction}
+                    onSuccess={() => setDialogOpen(false)}
+                  />
+                </div>
               </DialogContent>
             </Dialog>
           )}

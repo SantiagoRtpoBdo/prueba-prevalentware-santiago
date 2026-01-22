@@ -22,42 +22,67 @@ const handleGetReportData = async (
     const authResult = await requireAdmin(req, res);
     if (!authResult) return;
 
-    const transactions = await prisma.transaction.findMany({
-      orderBy: {
-        date: 'asc',
-      },
-    });
+    // Optimizar: usar SQL raw para agrupar por mes directamente en la base de datos
+    const [
+      incomeResult,
+      expenseResult,
+      transactionsCount,
+      monthlyIncome,
+      monthlyExpense,
+    ] = await Promise.all([
+      prisma.transaction.aggregate({
+        where: { type: 'INCOME' },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.aggregate({
+        where: { type: 'EXPENSE' },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.count(),
+      // Agrupar ingresos por mes usando SQL raw para mejor rendimiento
+      prisma.$queryRaw<Array<{ month: string; total: number }>>`
+        SELECT 
+          TO_CHAR(date, 'YYYY-MM') as month,
+          SUM(amount)::float as total
+        FROM transaction
+        WHERE type = 'INCOME'
+        GROUP BY TO_CHAR(date, 'YYYY-MM')
+        ORDER BY month ASC
+      `,
+      // Agrupar egresos por mes usando SQL raw
+      prisma.$queryRaw<Array<{ month: string; total: number }>>`
+        SELECT 
+          TO_CHAR(date, 'YYYY-MM') as month,
+          SUM(amount)::float as total
+        FROM transaction
+        WHERE type = 'EXPENSE'
+        GROUP BY TO_CHAR(date, 'YYYY-MM')
+        ORDER BY month ASC
+      `,
+    ]);
 
-    // Calcular totales
-    const totalIncome = transactions
-      .filter((t) => t.type === 'INCOME')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const totalExpense = transactions
-      .filter((t) => t.type === 'EXPENSE')
-      .reduce((sum, t) => sum + t.amount, 0);
-
+    const totalIncome = incomeResult._sum.amount || 0;
+    const totalExpense = expenseResult._sum.amount || 0;
     const balance = totalIncome - totalExpense;
 
-    // Agrupar por mes
-    const monthlyData: { [key: string]: { income: number; expense: number } } =
-      {};
+    // Combinar datos mensuales de ingresos y egresos
+    const monthlyMap = new Map<string, { income: number; expense: number }>();
 
-    transactions.forEach((transaction) => {
-      const monthKey = new Date(transaction.date).toISOString().slice(0, 7); // YYYY-MM
-      if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = { income: 0, expense: 0 };
-      }
+    monthlyIncome.forEach((item) => {
+      monthlyMap.set(item.month, { income: Number(item.total), expense: 0 });
+    });
 
-      if (transaction.type === 'INCOME') {
-        monthlyData[monthKey].income += transaction.amount;
+    monthlyExpense.forEach((item) => {
+      const existing = monthlyMap.get(item.month);
+      if (existing) {
+        existing.expense = Number(item.total);
       } else {
-        monthlyData[monthKey].expense += transaction.amount;
+        monthlyMap.set(item.month, { income: 0, expense: Number(item.total) });
       }
     });
 
-    // Convertir a array para el gráfico
-    const chartData = Object.entries(monthlyData)
+    // Convertir a array ordenado
+    const chartData = Array.from(monthlyMap.entries())
       .map(([month, data]) => ({
         month,
         income: data.income,
@@ -70,7 +95,7 @@ const handleGetReportData = async (
       totalIncome,
       totalExpense,
       monthlyData: chartData,
-      transactionsCount: transactions.length,
+      transactionsCount,
     });
   } catch (error) {
     handleError(res, error);

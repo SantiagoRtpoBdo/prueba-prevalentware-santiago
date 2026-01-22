@@ -1,7 +1,6 @@
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { authClient } from '@/lib/auth/client';
+import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/Layout';
+import { PageLoader } from '@/components/templates/PageLoader';
 import {
   Card,
   CardContent,
@@ -9,34 +8,19 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { TrendingUp, Users, FileText, ArrowRight, Loader2 } from 'lucide-react';
+import { TrendingUp, Users, FileText, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import type { ExtendedSession } from '@/types/session';
 
 const Dashboard = () => {
-  const router = useRouter();
-  const { data: session, isPending } = authClient.useSession();
-
-  useEffect(() => {
-    if (!isPending && !session) {
-      router.push('/');
-    }
-  }, [session, isPending, router]);
+  const { session, isPending, isAdmin, user } = useAuth();
 
   if (isPending) {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-background'>
-        <Loader2 className='h-8 w-8 animate-spin text-primary' />
-      </div>
-    );
+    return <PageLoader />;
   }
 
-  if (!session) {
+  if (!session || !user) {
     return null;
   }
-
-  const extendedSession = session as unknown as ExtendedSession;
-  const isAdmin = extendedSession.user.role === 'ADMIN';
 
   const features = [
     {
@@ -63,11 +47,11 @@ const Dashboard = () => {
   ];
 
   return (
-    <Layout user={extendedSession.user}>
+    <Layout user={user}>
       <div className='space-y-6 fade-in'>
         <div>
           <h2 className='text-2xl font-bold text-foreground'>
-            Bienvenido, {session.user.name}
+            Bienvenido, {user.name}
           </h2>
           <p className='mt-1 text-sm text-muted-foreground'>
             {isAdmin ? 'Panel de Administración' : 'Panel de Usuario'}

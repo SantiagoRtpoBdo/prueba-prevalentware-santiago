@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { authClient } from '@/lib/auth/client';
+import { useState, useMemo } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useUsers } from '@/hooks/useUsers';
 import Layout from '@/components/Layout';
-import type { ExtendedSession } from '@/types/session';
+import { PageLoader } from '@/components/templates/PageLoader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
@@ -20,19 +20,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Edit, Shield, User as UserIcon, Loader2, Crown } from 'lucide-react';
+import { Edit, Shield, User as UserIcon, Crown } from 'lucide-react';
 import { StatCard } from '@/components/molecules/StatCard';
 import { DataTableHeader } from '@/components/molecules/DataTableHeader';
 import { Badge } from '@/components/atoms/Badge';
+import { UserEditForm } from '@/components/organisms/UserEditForm';
 
 interface User {
   id: string;
@@ -44,108 +36,53 @@ interface User {
 }
 
 const Users = () => {
-  const router = useRouter();
-  const { data: session, isPending } = authClient.useSession();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { session, isPending, isAdmin, user } = useAuth({ requireAdmin: true });
+  const { users, loading, updateUser, adminCount, userCount } = useUsers();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [formData, setFormData] = useState({
-    name: '',
-    role: 'USER' as 'USER' | 'ADMIN',
-    phone: '',
-  });
 
-  useEffect(() => {
-    if (!isPending && !session) {
-      router.push('/');
-    } else if (session) {
-      const extendedSession = session as unknown as ExtendedSession;
-      if (extendedSession.user.role !== 'ADMIN') {
-        router.push('/dashboard');
-      } else {
-        fetchUsers();
-      }
-    }
-  }, [session, isPending, router]);
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch('/api/users');
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filteredUsers = useMemo(
+    () =>
+      users.filter(
+        (u) =>
+          u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          u.email.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [users, searchTerm]
+  );
 
   const handleEditClick = (user: User) => {
     setSelectedUser(user);
-    setFormData({
-      name: user.name,
-      role: user.role as 'USER' | 'ADMIN',
-      phone: user.phone || '',
-    });
     setDialogOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpdateUser = async (data: {
+    name: string;
+    role: 'USER' | 'ADMIN';
+    phone?: string;
+  }) => {
+    if (!selectedUser)
+      return { success: false, error: 'Usuario no seleccionado' };
 
-    if (!selectedUser) return;
-
-    try {
-      const response = await fetch(`/api/users/${selectedUser.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        setDialogOpen(false);
-        setSelectedUser(null);
-        fetchUsers();
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Error al actualizar el usuario');
-      }
-    } catch {
-      alert('Error al actualizar el usuario');
+    const result = await updateUser(selectedUser.id, data);
+    if (result.success) {
+      setDialogOpen(false);
+      setSelectedUser(null);
     }
+    return result;
   };
 
   if (isPending || loading) {
-    return (
-      <div className='flex min-h-screen items-center justify-center'>
-        <Loader2 className='h-8 w-8 animate-spin text-primary' />
-      </div>
-    );
+    return <PageLoader />;
   }
 
-  if (
-    !session ||
-    (session as unknown as ExtendedSession).user.role !== 'ADMIN'
-  ) {
+  if (!session || !isAdmin || !user) {
     return null;
   }
 
-  const extendedSession = session as unknown as ExtendedSession;
-  const filteredUsers = users.filter(
-    (u) =>
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const adminCount = users.filter((u) => u.role === 'ADMIN').length;
-  const userCount = users.length - adminCount;
-
   return (
-    <Layout user={extendedSession.user}>
+    <Layout user={user}>
       <div className='space-y-6 fade-in'>
         <div>
           <h2 className='text-3xl font-bold text-foreground'>
@@ -278,81 +215,30 @@ const Users = () => {
           </CardContent>
         </Card>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className='max-w-md'>
-            <DialogHeader>
-              <DialogTitle className='text-2xl font-bold'>
-                Editar Usuario
-              </DialogTitle>
-              <DialogDescription className='text-base'>
-                Actualiza la información y permisos del usuario
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className='mt-4 space-y-5'>
-              <div>
-                <Label htmlFor='name' className='text-sm font-semibold'>
-                  Nombre Completo
-                </Label>
-                <Input
-                  id='name'
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                  placeholder='Juan Pérez'
-                  className='mt-1.5'
+        {selectedUser && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogContent className='max-w-md'>
+              <DialogHeader>
+                <DialogTitle className='text-2xl font-bold'>
+                  Editar Usuario
+                </DialogTitle>
+                <DialogDescription className='text-base'>
+                  Actualiza la información y permisos del usuario
+                </DialogDescription>
+              </DialogHeader>
+              <div className='mt-4'>
+                <UserEditForm
+                  user={selectedUser}
+                  onSubmit={handleUpdateUser}
+                  onSuccess={() => {
+                    setDialogOpen(false);
+                    setSelectedUser(null);
+                  }}
                 />
               </div>
-              <div>
-                <Label htmlFor='role' className='text-sm font-semibold'>
-                  Rol del Usuario
-                </Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value: 'USER' | 'ADMIN') =>
-                    setFormData({ ...formData, role: value })
-                  }
-                >
-                  <SelectTrigger className='mt-1.5'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='USER'>
-                      <div className='flex items-center gap-2'>
-                        <UserIcon className='h-4 w-4 text-muted-foreground' />
-                        <span>Usuario Regular</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value='ADMIN'>
-                      <div className='flex items-center gap-2'>
-                        <Shield className='h-4 w-4 text-primary' />
-                        <span>Administrador</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor='phone' className='text-sm font-semibold'>
-                  Teléfono (Opcional)
-                </Label>
-                <Input
-                  id='phone'
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                  placeholder='+57 300 123 4567'
-                  className='mt-1.5'
-                />
-              </div>
-              <Button type='submit' className='w-full'>
-                Guardar Cambios
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </Layout>
   );
