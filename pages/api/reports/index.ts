@@ -5,16 +5,19 @@ import { prisma } from '@/lib/auth';
 /**
  * GET /api/reports - Obtener datos para reportes (solo admins)
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'GET') {
     return handleGetReportData(req, res);
   } else {
     res.setHeader('Allow', ['GET']);
     res.status(405).json({ error: `Método ${req.method} no permitido` });
   }
-}
+};
 
-async function handleGetReportData(req: NextApiRequest, res: NextApiResponse) {
+const handleGetReportData = async (
+  req: NextApiRequest,
+  res: NextApiResponse
+) => {
   try {
     const authResult = await requireAdmin(req, res);
     if (!authResult) return;
@@ -37,7 +40,8 @@ async function handleGetReportData(req: NextApiRequest, res: NextApiResponse) {
     const balance = totalIncome - totalExpense;
 
     // Agrupar por mes
-    const monthlyData: { [key: string]: { income: number; expense: number } } = {};
+    const monthlyData: { [key: string]: { income: number; expense: number } } =
+      {};
 
     transactions.forEach((transaction) => {
       const monthKey = new Date(transaction.date).toISOString().slice(0, 7); // YYYY-MM
@@ -71,4 +75,6 @@ async function handleGetReportData(req: NextApiRequest, res: NextApiResponse) {
   } catch (error) {
     handleError(res, error);
   }
-}
+};
+
+export default handler;

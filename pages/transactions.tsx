@@ -4,15 +4,7 @@ import { authClient } from '@/lib/auth/client';
 import Layout from '@/components/Layout';
 import type { ExtendedSession } from '@/types/session';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -30,7 +22,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
+import { StatCard } from '@/components/molecules/StatCard';
+import { DataTableHeader } from '@/components/molecules/DataTableHeader';
+import { TransactionsTable } from '@/components/organisms/TransactionsTable';
 
 interface Transaction {
   id: string;
@@ -45,12 +40,13 @@ interface Transaction {
   };
 }
 
-export default function Transactions() {
+const Transactions = () => {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     concept: '',
     amount: '',
@@ -73,8 +69,6 @@ export default function Transactions() {
         const data = await response.json();
         setTransactions(data);
       }
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
     } finally {
       setLoading(false);
     }
@@ -109,19 +103,15 @@ export default function Transactions() {
         const error = await response.json();
         alert(error.error || 'Error al crear la transacción');
       }
-    } catch (error) {
-      console.error('Error creating transaction:', error);
+    } catch {
       alert('Error al crear la transacción');
     }
   };
 
   if (isPending || loading) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto'></div>
-          <p className='mt-4 text-gray-600'>Cargando...</p>
-        </div>
+      <div className='flex min-h-screen items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
       </div>
     );
   }
@@ -133,36 +123,59 @@ export default function Transactions() {
   const extendedSession = session as unknown as ExtendedSession;
   const isAdmin = extendedSession.user.role === 'ADMIN';
 
+  const filteredTransactions = transactions.filter(
+    (t) =>
+      t.concept.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.user.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalIncome = transactions
+    .filter((t) => t.type === 'INCOME')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const totalExpense = transactions
+    .filter((t) => t.type === 'EXPENSE')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const balance = totalIncome - totalExpense;
+
+  const incomePercentage =
+    totalIncome > 0
+      ? ((totalIncome / (totalIncome + totalExpense)) * 100).toFixed(1)
+      : '0';
+
   return (
-    <Layout user={extendedSession.user as any}>
-      <div className='space-y-6'>
-        <div className='flex justify-between items-center'>
+    <Layout user={extendedSession.user}>
+      <div className='space-y-6 fade-in'>
+        <div className='flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
           <div>
-            <h2 className='text-3xl font-bold text-gray-900'>
+            <h2 className='text-3xl font-bold text-foreground'>
               Gestión de Movimientos
             </h2>
-            <p className='mt-2 text-gray-600'>
+            <p className='mt-1 text-muted-foreground'>
               Visualiza y administra los ingresos y egresos
             </p>
           </div>
           {isAdmin && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
-                  <Plus className='mr-2 h-4 w-4' />
+                <Button size='lg' className='gap-2'>
+                  <Plus className='h-5 w-5' />
                   Nuevo Movimiento
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className='max-w-md'>
                 <DialogHeader>
-                  <DialogTitle>Nuevo Movimiento</DialogTitle>
-                  <DialogDescription>
-                    Registra un nuevo ingreso o egreso
+                  <DialogTitle className='text-2xl font-bold'>
+                    Nuevo Movimiento
+                  </DialogTitle>
+                  <DialogDescription className='text-base'>
+                    Registra un nuevo ingreso o egreso en el sistema
                   </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className='space-y-4'>
+                <form onSubmit={handleSubmit} className='mt-4 space-y-5'>
                   <div>
-                    <Label htmlFor='concept'>Concepto</Label>
+                    <Label htmlFor='concept' className='text-sm font-semibold'>
+                      Concepto
+                    </Label>
                     <Input
                       id='concept'
                       value={formData.concept}
@@ -170,11 +183,14 @@ export default function Transactions() {
                         setFormData({ ...formData, concept: e.target.value })
                       }
                       required
-                      placeholder='Descripción del movimiento'
+                      placeholder='Ej: Pago de servicios'
+                      className='mt-1.5'
                     />
                   </div>
                   <div>
-                    <Label htmlFor='amount'>Monto</Label>
+                    <Label htmlFor='amount' className='text-sm font-semibold'>
+                      Monto
+                    </Label>
                     <Input
                       id='amount'
                       type='number'
@@ -185,27 +201,42 @@ export default function Transactions() {
                       }
                       required
                       placeholder='0.00'
+                      className='mt-1.5'
                     />
                   </div>
                   <div>
-                    <Label htmlFor='type'>Tipo</Label>
+                    <Label htmlFor='type' className='text-sm font-semibold'>
+                      Tipo de Movimiento
+                    </Label>
                     <Select
                       value={formData.type}
                       onValueChange={(value: 'INCOME' | 'EXPENSE') =>
                         setFormData({ ...formData, type: value })
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className='mt-1.5'>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value='INCOME'>Ingreso</SelectItem>
-                        <SelectItem value='EXPENSE'>Egreso</SelectItem>
+                        <SelectItem value='INCOME'>
+                          <div className='flex items-center gap-2'>
+                            <TrendingUp className='h-4 w-4 text-success' />
+                            <span>Ingreso</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value='EXPENSE'>
+                          <div className='flex items-center gap-2'>
+                            <TrendingDown className='h-4 w-4 text-destructive' />
+                            <span>Egreso</span>
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor='date'>Fecha</Label>
+                    <Label htmlFor='date' className='text-sm font-semibold'>
+                      Fecha y Hora
+                    </Label>
                     <Input
                       id='date'
                       type='datetime-local'
@@ -214,6 +245,7 @@ export default function Transactions() {
                         setFormData({ ...formData, date: e.target.value })
                       }
                       required
+                      className='mt-1.5'
                     />
                   </div>
                   <Button type='submit' className='w-full'>
@@ -225,92 +257,69 @@ export default function Transactions() {
           )}
         </div>
 
-        <Card>
+        <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
+          <StatCard
+            title='Total Ingresos'
+            value={`$${totalIncome.toLocaleString('es-ES', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`}
+            icon={<TrendingUp className='h-5 w-5' />}
+            trend={{
+              value: Number(incomePercentage),
+              isPositive: true,
+            }}
+          />
+          <StatCard
+            title='Total Egresos'
+            value={`$${totalExpense.toLocaleString('es-ES', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`}
+            icon={<TrendingDown className='h-5 w-5' />}
+          />
+          <StatCard
+            title='Balance Total'
+            value={`$${Math.abs(balance).toLocaleString('es-ES', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`}
+            icon={<TrendingUp className='h-5 w-5' />}
+            trend={{
+              value: balance,
+              isPositive: balance >= 0,
+            }}
+          />
+        </div>
+
+        <Card className='shadow-professional'>
           <CardHeader>
-            <CardTitle>Lista de Movimientos</CardTitle>
+            <DataTableHeader
+              title='Transacciones'
+              description={`${filteredTransactions.length} movimiento${
+                filteredTransactions.length !== 1 ? 's' : ''
+              }`}
+              searchProps={{
+                value: searchTerm,
+                onChange: (value: string) => setSearchTerm(value),
+                placeholder: 'Buscar por concepto o usuario...',
+              }}
+            />
           </CardHeader>
           <CardContent>
-            {transactions.length === 0 ? (
-              <div className='text-center py-8 text-gray-500'>
-                No hay transacciones registradas
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Concepto</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead className='text-right'>Monto</TableHead>
-                    <TableHead>Usuario</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell>
-                        {new Date(transaction.date).toLocaleDateString(
-                          'es-ES',
-                          {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          }
-                        )}
-                      </TableCell>
-                      <TableCell className='font-medium'>
-                        {transaction.concept}
-                      </TableCell>
-                      <TableCell>
-                        <div className='flex items-center'>
-                          {transaction.type === 'INCOME' ? (
-                            <>
-                              <TrendingUp className='h-4 w-4 text-green-600 mr-2' />
-                              <span className='text-green-600'>Ingreso</span>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingDown className='h-4 w-4 text-red-600 mr-2' />
-                              <span className='text-red-600'>Egreso</span>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className='text-right font-semibold'>
-                        <span
-                          className={
-                            transaction.type === 'INCOME'
-                              ? 'text-green-600'
-                              : 'text-red-600'
-                          }
-                        >
-                          {transaction.type === 'INCOME' ? '+' : '-'}$
-                          {transaction.amount.toLocaleString('es-ES', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className='font-medium'>
-                            {transaction.user.name}
-                          </div>
-                          <div className='text-sm text-gray-500'>
-                            {transaction.user.email}
-                          </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+            <TransactionsTable
+              transactions={filteredTransactions}
+              emptyMessage={
+                searchTerm
+                  ? 'No se encontraron transacciones'
+                  : 'No hay transacciones registradas'
+              }
+            />
           </CardContent>
         </Card>
       </div>
     </Layout>
   );
-}
+};
+
+export default Transactions;

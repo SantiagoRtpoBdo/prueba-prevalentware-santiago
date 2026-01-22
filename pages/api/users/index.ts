@@ -5,16 +5,16 @@ import { prisma } from '@/lib/auth';
 /**
  * GET /api/users - Obtener todos los usuarios (solo admins)
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'GET') {
     return handleGetUsers(req, res);
   } else {
     res.setHeader('Allow', ['GET']);
     res.status(405).json({ error: `Método ${req.method} no permitido` });
   }
-}
+};
 
-async function handleGetUsers(req: NextApiRequest, res: NextApiResponse) {
+const handleGetUsers = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const authResult = await requireAdmin(req, res);
     if (!authResult) return;
@@ -38,4 +38,6 @@ async function handleGetUsers(req: NextApiRequest, res: NextApiResponse) {
   } catch (error) {
     handleError(res, error);
   }
-}
+};
+
+export default handler;

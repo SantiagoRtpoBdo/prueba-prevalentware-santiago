@@ -6,7 +6,7 @@ import { prisma } from '@/lib/auth';
  * GET /api/transactions - Obtener todas las transacciones
  * POST /api/transactions - Crear una nueva transacción (solo admins)
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'GET') {
     return handleGetTransactions(req, res);
   } else if (req.method === 'POST') {
@@ -15,9 +15,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Allow', ['GET', 'POST']);
     res.status(405).json({ error: `Método ${req.method} no permitido` });
   }
-}
+};
 
-async function handleGetTransactions(req: NextApiRequest, res: NextApiResponse) {
+const handleGetTransactions = async (
+  req: NextApiRequest,
+  res: NextApiResponse
+) => {
   try {
     const authResult = await requireAuth(req, res);
     if (!authResult) return;
@@ -41,33 +44,45 @@ async function handleGetTransactions(req: NextApiRequest, res: NextApiResponse) 
   } catch (error) {
     handleError(res, error);
   }
-}
+};
 
-async function handleCreateTransaction(req: NextApiRequest, res: NextApiResponse) {
+const validateTransactionData = (body: {
+  concept?: string;
+  amount?: number;
+  type?: string;
+  date?: string;
+}) => {
+  const { concept, amount, type, date } = body;
+
+  if (!concept || !amount || !type || !date) {
+    return 'Todos los campos son requeridos: concept, amount, type, date';
+  }
+
+  if (type !== 'INCOME' && type !== 'EXPENSE') {
+    return 'El tipo debe ser INCOME o EXPENSE';
+  }
+
+  if (typeof amount !== 'number' || amount <= 0) {
+    return 'El monto debe ser un número positivo';
+  }
+
+  return null;
+};
+
+const handleCreateTransaction = async (
+  req: NextApiRequest,
+  res: NextApiResponse
+) => {
   try {
     const authResult = await requireAdmin(req, res);
     if (!authResult) return;
 
+    const validationError = validateTransactionData(req.body);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
     const { concept, amount, type, date } = req.body;
-
-    // Validación de datos
-    if (!concept || !amount || !type || !date) {
-      return res.status(400).json({
-        error: 'Todos los campos son requeridos: concept, amount, type, date',
-      });
-    }
-
-    if (type !== 'INCOME' && type !== 'EXPENSE') {
-      return res.status(400).json({
-        error: 'El tipo debe ser INCOME o EXPENSE',
-      });
-    }
-
-    if (typeof amount !== 'number' || amount <= 0) {
-      return res.status(400).json({
-        error: 'El monto debe ser un número positivo',
-      });
-    }
 
     const transaction = await prisma.transaction.create({
       data: {
@@ -92,4 +107,6 @@ async function handleCreateTransaction(req: NextApiRequest, res: NextApiResponse
   } catch (error) {
     handleError(res, error);
   }
-}
+};
+
+export default handler;

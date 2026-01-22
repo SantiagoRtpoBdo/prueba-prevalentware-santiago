@@ -5,16 +5,16 @@ import { prisma } from '@/lib/auth';
 /**
  * GET /api/reports/csv - Descargar reporte en CSV (solo admins)
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'GET') {
     return handleDownloadCSV(req, res);
   } else {
     res.setHeader('Allow', ['GET']);
     res.status(405).json({ error: `Método ${req.method} no permitido` });
   }
-}
+};
 
-async function handleDownloadCSV(req: NextApiRequest, res: NextApiResponse) {
+const handleDownloadCSV = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const authResult = await requireAdmin(req, res);
     if (!authResult) return;
@@ -53,9 +53,14 @@ async function handleDownloadCSV(req: NextApiRequest, res: NextApiResponse) {
 
     // Configurar headers para descarga
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename=reporte-transacciones.csv');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=reporte-transacciones.csv'
+    );
     res.status(200).send('\uFEFF' + csvContent); // BOM para UTF-8
   } catch (error) {
     handleError(res, error);
   }
-}
+};
+
+export default handler;

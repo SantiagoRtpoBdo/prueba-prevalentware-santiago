@@ -112,7 +112,8 @@ export const swaggerDocument = {
       get: {
         tags: ['Transactions'],
         summary: 'Obtener todas las transacciones',
-        description: 'Retorna una lista de todas las transacciones de ingresos y egresos',
+        description:
+          'Retorna una lista de todas las transacciones de ingresos y egresos',
         security: [{ cookieAuth: [] }],
         responses: {
           '200': {
@@ -215,7 +216,8 @@ export const swaggerDocument = {
       get: {
         tags: ['Users'],
         summary: 'Obtener todos los usuarios',
-        description: 'Retorna una lista de todos los usuarios (solo administradores)',
+        description:
+          'Retorna una lista de todos los usuarios (solo administradores)',
         security: [{ cookieAuth: [] }],
         responses: {
           '200': {
@@ -244,7 +246,8 @@ export const swaggerDocument = {
       put: {
         tags: ['Users'],
         summary: 'Actualizar un usuario',
-        description: 'Actualiza la información de un usuario (solo administradores)',
+        description:
+          'Actualiza la información de un usuario (solo administradores)',
         security: [{ cookieAuth: [] }],
         parameters: [
           {
@@ -376,7 +379,8 @@ export const swaggerDocument = {
       get: {
         tags: ['Reports'],
         summary: 'Descargar reporte en CSV',
-        description: 'Descarga un archivo CSV con todas las transacciones (solo administradores)',
+        description:
+          'Descarga un archivo CSV con todas las transacciones (solo administradores)',
         security: [{ cookieAuth: [] }],
         responses: {
           '200': {
@@ -411,7 +415,8 @@ export const swaggerDocument = {
     },
     {
       name: 'Reports',
-      description: 'Endpoints para generación de reportes (solo administradores)',
+      description:
+        'Endpoints para generación de reportes (solo administradores)',
     },
   ],
 };

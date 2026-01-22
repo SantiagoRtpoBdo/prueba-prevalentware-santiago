@@ -14,12 +14,20 @@ export interface AuthenticatedRequest extends NextApiRequest {
 /**
  * Middleware para verificar autenticación
  */
-export async function requireAuth(
+export const requireAuth = async (
   req: NextApiRequest,
   res: NextApiResponse
-): Promise<{ user: any } | null> {
+): Promise<{
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string | null | undefined;
+    phone?: string | null;
+  };
+} | null> => {
   const session = await auth.api.getSession({
-    headers: req.headers as any,
+    headers: req.headers as Record<string, string>,
   });
 
   if (!session) {
@@ -28,33 +36,44 @@ export async function requireAuth(
   }
 
   return { user: session.user };
-}
+};
 
 /**
  * Middleware para verificar rol de administrador
  */
-export async function requireAdmin(
+export const requireAdmin = async (
   req: NextApiRequest,
   res: NextApiResponse
-): Promise<{ user: any } | null> {
+): Promise<{
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string | null | undefined;
+    phone?: string | null;
+  };
+} | null> => {
   const authResult = await requireAuth(req, res);
   if (!authResult) return null;
 
   if (authResult.user.role !== 'ADMIN') {
-    res.status(403).json({ error: 'Acceso denegado. Se requiere rol de administrador' });
+    res
+      .status(403)
+      .json({ error: 'Acceso denegado. Se requiere rol de administrador' });
     return null;
   }
 
   return authResult;
-}
+};
 
 /**
  * Manejador de errores
  */
-export function handleError(res: NextApiResponse, error: any) {
-  console.error('API Error:', error);
+export const handleError = (res: NextApiResponse, error: Error | unknown) => {
+  const errorMessage =
+    error instanceof Error ? error.message : 'Ocurrió un error inesperado';
   res.status(500).json({
     error: 'Error interno del servidor',
-    message: error.message || 'Ocurrió un error inesperado',
+    message: errorMessage,
   });
-}
+};

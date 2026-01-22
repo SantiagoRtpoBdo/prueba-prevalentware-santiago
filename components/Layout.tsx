@@ -3,18 +3,25 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { authClient } from '@/lib/auth/client';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, TrendingUp, Users, LogOut, FileText } from 'lucide-react';
+import {
+  LayoutDashboard,
+  TrendingUp,
+  Users,
+  LogOut,
+  FileText,
+  Building2,
+} from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
   user?: {
     name: string;
     email: string;
-    role: string;
+    role?: string;
   } | null;
 }
 
-export default function Layout({ children, user }: LayoutProps) {
+const Layout = ({ children, user }: LayoutProps) => {
   const router = useRouter();
   const isAdmin = user?.role === 'ADMIN';
 
@@ -51,41 +58,51 @@ export default function Layout({ children, user }: LayoutProps) {
   ];
 
   if (!user) {
-    return <div className="min-h-screen bg-gray-50">{children}</div>;
+    return <div className='min-h-screen bg-background'>{children}</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">
-                Sistema de Gestión Financiera
-              </h1>
+    <div className='min-h-screen bg-secondary/30'>
+      {/* Professional Header */}
+      <header className='sticky top-0 z-50 bg-card border-b border-border shadow-subtle'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='flex justify-between items-center h-16'>
+            {/* Logo and Title */}
+            <div className='flex items-center gap-3'>
+              <div className='flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground'>
+                <Building2 className='h-5 w-5' />
+              </div>
+              <div>
+                <h1 className='text-base font-semibold text-foreground'>
+                  Sistema de Gestión Financiera
+                </h1>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-sm">
-                <div className="font-medium text-gray-900">{user.name}</div>
-                <div className="text-gray-500">{user.email}</div>
+
+            {/* User info and actions */}
+            <div className='flex items-center gap-4'>
+              <div className='text-sm text-right hidden md:block'>
+                <div className='font-medium text-foreground'>{user.name}</div>
+                <div className='text-xs text-muted-foreground'>{user.role}</div>
               </div>
-              <div className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
-                {user.role}
-              </div>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Salir
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={handleLogout}
+                className='gap-2'
+              >
+                <LogOut className='h-4 w-4' />
+                <span className='hidden sm:inline'>Salir</span>
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
+      {/* Professional Navigation */}
+      <nav className='sticky top-16 z-40 bg-card border-b border-border'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='flex space-x-1'>
             {navigation.map(
               (item) =>
                 item.show && (
@@ -93,16 +110,21 @@ export default function Layout({ children, user }: LayoutProps) {
                     key={item.name}
                     href={item.href}
                     className={`
-                      flex items-center px-3 py-4 text-sm font-medium border-b-2 transition-colors
+                      relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-fast
                       ${
                         router.pathname === item.href
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          ? 'text-primary'
+                          : 'text-muted-foreground hover:text-foreground'
                       }
                     `}
                   >
-                    <item.icon className="h-5 w-5 mr-2" />
-                    {item.name}
+                    <item.icon className='h-4 w-4' />
+                    <span>{item.name}</span>
+
+                    {/* Active indicator */}
+                    {router.pathname === item.href && (
+                      <div className='absolute bottom-0 left-0 right-0 h-0.5 bg-primary' />
+                    )}
                   </Link>
                 )
             )}
@@ -111,7 +133,21 @@ export default function Layout({ children, user }: LayoutProps) {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</main>
+      <main className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 fade-in'>
+        {children}
+      </main>
+
+      {/* Footer */}
+      <footer className='mt-auto py-4 border-t border-border bg-card'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='text-center text-xs text-muted-foreground'>
+            <p>© 2026 Sistema de Gestión Financiera</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
-}
+};
+
+// eslint-disable-next-line import/no-default-export
+export default Layout;
