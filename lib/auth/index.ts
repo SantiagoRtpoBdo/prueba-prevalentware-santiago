@@ -43,14 +43,13 @@ export const auth = betterAuth({
 
         await brevoApiInstance.sendTransacEmail(sendSmtpEmail);
       } catch (error) {
-        // Si falla el envío, logueamos pero no bloqueamos el registro
         if (process.env.NODE_ENV === 'development') {
           // eslint-disable-next-line no-console
           console.error('Error enviando email de verificación:', error);
           // eslint-disable-next-line no-console
           console.log('URL de verificación:', url);
         }
-        throw error; // Re-lanzar para que Better Auth lo maneje
+        throw error;
       }
     },
   },
@@ -65,7 +64,7 @@ export const auth = betterAuth({
       role: {
         type: 'string',
         required: false,
-        defaultValue: 'ADMIN', // Todos los nuevos usuarios son ADMIN para facilitar pruebas
+        defaultValue: 'ADMIN',
         input: false,
       },
       phone: {

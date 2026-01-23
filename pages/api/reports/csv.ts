@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdmin, handleError } from '@/lib/api-helpers';
-import { prisma } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { withPrismaErrorHandling } from '@/lib/prisma-error-handler';
 
 /**
  * GET /api/reports/csv - Descargar reporte en CSV (solo admins)
@@ -19,18 +20,20 @@ const handleDownloadCSV = async (req: NextApiRequest, res: NextApiResponse) => {
     const authResult = await requireAdmin(req, res);
     if (!authResult) return;
 
-    const transactions = await prisma.transaction.findMany({
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
+    const transactions = await withPrismaErrorHandling(async () => {
+      return prisma.transaction.findMany({
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
           },
         },
-      },
-      orderBy: {
-        date: 'desc',
-      },
+        orderBy: {
+          date: 'desc',
+        },
+      });
     });
 
     // Crear CSV
@@ -51,13 +54,12 @@ const handleDownloadCSV = async (req: NextApiRequest, res: NextApiResponse) => {
 
     const csvContent = csvRows.join('\n');
 
-    // Configurar headers para descarga
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
       'Content-Disposition',
       'attachment; filename=reporte-transacciones.csv'
     );
-    res.status(200).send('\uFEFF' + csvContent); // BOM para UTF-8
+    res.status(200).send('\uFEFF' + csvContent);
   } catch (error) {
     handleError(res, error);
   }
