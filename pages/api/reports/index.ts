@@ -24,8 +24,8 @@ const handleGetReportData = async (
     if (!authResult) return;
 
     const [incomeResult, expenseResult, transactions] =
-      await withPrismaErrorHandling(async () => {
-        return Promise.all([
+      await withPrismaErrorHandling(async () =>
+        Promise.all([
           prisma.transaction.aggregate({
             where: { type: 'INCOME' },
             _sum: { amount: true },
@@ -37,9 +37,8 @@ const handleGetReportData = async (
           prisma.transaction.findMany({
             orderBy: { date: 'desc' },
           }),
-        ]);
-      });
-
+        ])
+      );
     const totalIncome = incomeResult._sum.amount || 0;
     const totalExpense = expenseResult._sum.amount || 0;
     const balance = totalIncome - totalExpense;

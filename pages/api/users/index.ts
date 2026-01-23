@@ -20,8 +20,8 @@ const handleGetUsers = async (req: NextApiRequest, res: NextApiResponse) => {
     const authResult = await requireAdmin(req, res);
     if (!authResult) return;
 
-    const users = await withPrismaErrorHandling(async () => {
-      return prisma.user.findMany({
+    const users = await withPrismaErrorHandling(async () =>
+      prisma.user.findMany({
         select: {
           id: true,
           name: true,
@@ -34,8 +34,8 @@ const handleGetUsers = async (req: NextApiRequest, res: NextApiResponse) => {
         orderBy: {
           createdAt: 'desc',
         },
-      });
-    });
+      })
+    );
 
     res.status(200).json(users);
   } catch (error) {

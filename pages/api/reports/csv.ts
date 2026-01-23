@@ -20,8 +20,8 @@ const handleDownloadCSV = async (req: NextApiRequest, res: NextApiResponse) => {
     const authResult = await requireAdmin(req, res);
     if (!authResult) return;
 
-    const transactions = await withPrismaErrorHandling(async () => {
-      return prisma.transaction.findMany({
+    const transactions = await withPrismaErrorHandling(async () =>
+      prisma.transaction.findMany({
         include: {
           user: {
             select: {
@@ -33,8 +33,8 @@ const handleDownloadCSV = async (req: NextApiRequest, res: NextApiResponse) => {
         orderBy: {
           date: 'desc',
         },
-      });
-    });
+      })
+    );
 
     // Crear CSV
     const headers = ['Fecha', 'Concepto', 'Tipo', 'Monto', 'Usuario', 'Email'];
