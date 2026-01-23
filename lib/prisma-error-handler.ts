@@ -8,7 +8,7 @@ export const isPreparedStatementError = (error: unknown): boolean => {
   }
 
   if (error instanceof Error) {
-    const message = error.message;
+    const { message } = error;
     return (
       message.includes('prepared statement') ||
       message.includes('does not exist') ||

@@ -26,8 +26,8 @@ const handleGetTransactions = async (
     const authResult = await requireAuth(req, res);
     if (!authResult) return;
 
-    const transactions = await withPrismaErrorHandling(async () => {
-      return prisma.transaction.findMany({
+    const transactions = await withPrismaErrorHandling(async () =>
+      prisma.transaction.findMany({
         include: {
           user: {
             select: {
@@ -40,8 +40,8 @@ const handleGetTransactions = async (
         orderBy: {
           date: 'desc',
         },
-      });
-    });
+      })
+    );
 
     res.status(200).json(transactions);
   } catch (error) {
@@ -87,8 +87,8 @@ const handleCreateTransaction = async (
 
     const { concept, amount, type, date } = req.body;
 
-    const transaction = await withPrismaErrorHandling(async () => {
-      return prisma.transaction.create({
+    const transaction = await withPrismaErrorHandling(async () =>
+      prisma.transaction.create({
         data: {
           concept,
           amount,
@@ -105,8 +105,8 @@ const handleCreateTransaction = async (
             },
           },
         },
-      });
-    });
+      })
+    );
 
     res.status(201).json(transaction);
   } catch (error) {
