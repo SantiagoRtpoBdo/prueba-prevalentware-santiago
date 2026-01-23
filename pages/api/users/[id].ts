@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdmin, handleError } from '@/lib/api-helpers';
-import { prisma } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { withPrismaErrorHandling } from '@/lib/prisma-error-handler';
 
 /**
  * PUT /api/users/[id] - Actualizar un usuario (solo admins)
@@ -44,34 +45,39 @@ const handleUpdateUser = async (req: NextApiRequest, res: NextApiResponse) => {
       return res.status(400).json({ error: 'El rol debe ser USER o ADMIN' });
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { id: id as string },
-    });
+    const updatedUser = await withPrismaErrorHandling(async () => {
+      const existingUser = await prisma.user.findUnique({
+        where: { id: id as string },
+      });
 
-    if (!existingUser) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
+      if (!existingUser) {
+        throw new Error('Usuario no encontrado');
+      }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: id as string },
-      data: {
-        ...(name && { name }),
-        ...(role && { role }),
-        ...(phone !== undefined && { phone }),
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      return prisma.user.update({
+        where: { id: id as string },
+        data: {
+          ...(name && { name }),
+          ...(role && { role }),
+          ...(phone !== undefined && { phone }),
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
     });
 
     res.status(200).json(updatedUser);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Usuario no encontrado') {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
     handleError(res, error);
   }
 };

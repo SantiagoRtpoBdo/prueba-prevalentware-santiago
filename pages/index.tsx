@@ -257,8 +257,7 @@ const Home = () => {
         <div className='container mx-auto px-4 py-6'>
           <div className='text-center text-sm text-muted-foreground'>
             <p>
-              Sistema de Gestión Financiera © {new Date().getFullYear()} - Todos
-              los derechos reservados
+              Sistema de Gestión Financiera © {new Date().getFullYear()} - SantiDev Development with ❤️.
             </p>
           </div>
         </div>

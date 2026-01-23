@@ -33,8 +33,8 @@ describe('Layout Component', () => {
 
     expect(screen.getByText('Test Content')).toBeInTheDocument();
     expect(screen.getByText('Test User')).toBeInTheDocument();
-    expect(screen.getByText('test@example.com')).toBeInTheDocument();
     expect(screen.getByText('ADMIN')).toBeInTheDocument();
+    expect(screen.getByText('Inicio')).toBeInTheDocument();
   });
 
   it('debería mostrar navegación completa para administradores', () => {

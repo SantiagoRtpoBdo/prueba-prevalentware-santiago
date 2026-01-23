@@ -31,12 +31,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      // La validación se maneja en el componente padre
       return;
     }
 
     if (password.length < 8) {
-      // La validación se maneja en el componente padre
       return;
     }
 

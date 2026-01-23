@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAuth, requireAdmin, handleError } from '@/lib/api-helpers';
-import { prisma } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { withPrismaErrorHandling } from '@/lib/prisma-error-handler';
 
 /**
  * GET /api/transactions - Obtener todas las transacciones
@@ -25,19 +26,21 @@ const handleGetTransactions = async (
     const authResult = await requireAuth(req, res);
     if (!authResult) return;
 
-    const transactions = await prisma.transaction.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+    const transactions = await withPrismaErrorHandling(async () => {
+      return prisma.transaction.findMany({
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
           },
         },
-      },
-      orderBy: {
-        date: 'desc',
-      },
+        orderBy: {
+          date: 'desc',
+        },
+      });
     });
 
     res.status(200).json(transactions);
@@ -84,23 +87,25 @@ const handleCreateTransaction = async (
 
     const { concept, amount, type, date } = req.body;
 
-    const transaction = await prisma.transaction.create({
-      data: {
-        concept,
-        amount,
-        type,
-        date: new Date(date),
-        userId: authResult.user.id,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+    const transaction = await withPrismaErrorHandling(async () => {
+      return prisma.transaction.create({
+        data: {
+          concept,
+          amount,
+          type,
+          date: new Date(date),
+          userId: authResult.user.id,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
           },
         },
-      },
+      });
     });
 
     res.status(201).json(transaction);

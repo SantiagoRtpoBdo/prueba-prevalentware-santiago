@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdmin, handleError } from '@/lib/api-helpers';
-import { prisma } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { withPrismaErrorHandling } from '@/lib/prisma-error-handler';
 
 /**
  * GET /api/reports - Obtener datos para reportes (solo admins)
@@ -22,66 +23,46 @@ const handleGetReportData = async (
     const authResult = await requireAdmin(req, res);
     if (!authResult) return;
 
-    // Optimizar: usar SQL raw para agrupar por mes directamente en la base de datos
-    const [
-      incomeResult,
-      expenseResult,
-      transactionsCount,
-      monthlyIncome,
-      monthlyExpense,
-    ] = await Promise.all([
-      prisma.transaction.aggregate({
-        where: { type: 'INCOME' },
-        _sum: { amount: true },
-      }),
-      prisma.transaction.aggregate({
-        where: { type: 'EXPENSE' },
-        _sum: { amount: true },
-      }),
-      prisma.transaction.count(),
-      // Agrupar ingresos por mes usando SQL raw para mejor rendimiento
-      prisma.$queryRaw<Array<{ month: string; total: number }>>`
-        SELECT 
-          TO_CHAR(date, 'YYYY-MM') as month,
-          SUM(amount)::float as total
-        FROM transaction
-        WHERE type = 'INCOME'
-        GROUP BY TO_CHAR(date, 'YYYY-MM')
-        ORDER BY month ASC
-      `,
-      // Agrupar egresos por mes usando SQL raw
-      prisma.$queryRaw<Array<{ month: string; total: number }>>`
-        SELECT 
-          TO_CHAR(date, 'YYYY-MM') as month,
-          SUM(amount)::float as total
-        FROM transaction
-        WHERE type = 'EXPENSE'
-        GROUP BY TO_CHAR(date, 'YYYY-MM')
-        ORDER BY month ASC
-      `,
-    ]);
+    const [incomeResult, expenseResult, transactions] =
+      await withPrismaErrorHandling(async () => {
+        return Promise.all([
+          prisma.transaction.aggregate({
+            where: { type: 'INCOME' },
+            _sum: { amount: true },
+          }),
+          prisma.transaction.aggregate({
+            where: { type: 'EXPENSE' },
+            _sum: { amount: true },
+          }),
+          prisma.transaction.findMany({
+            orderBy: { date: 'desc' },
+          }),
+        ]);
+      });
 
     const totalIncome = incomeResult._sum.amount || 0;
     const totalExpense = expenseResult._sum.amount || 0;
     const balance = totalIncome - totalExpense;
+    const transactionsCount = transactions.length;
 
-    // Combinar datos mensuales de ingresos y egresos
     const monthlyMap = new Map<string, { income: number; expense: number }>();
 
-    monthlyIncome.forEach((item) => {
-      monthlyMap.set(item.month, { income: Number(item.total), expense: 0 });
-    });
+    transactions.forEach((transaction) => {
+      const date = new Date(transaction.date);
+      const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
-    monthlyExpense.forEach((item) => {
-      const existing = monthlyMap.get(item.month);
-      if (existing) {
-        existing.expense = Number(item.total);
+      if (!monthlyMap.has(month)) {
+        monthlyMap.set(month, { income: 0, expense: 0 });
+      }
+
+      const monthData = monthlyMap.get(month)!;
+      if (transaction.type === 'INCOME') {
+        monthData.income += transaction.amount;
       } else {
-        monthlyMap.set(item.month, { income: 0, expense: Number(item.total) });
+        monthData.expense += transaction.amount;
       }
     });
 
-    // Convertir a array ordenado
     const chartData = Array.from(monthlyMap.entries())
       .map(([month, data]) => ({
         month,
